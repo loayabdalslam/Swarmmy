@@ -24,6 +24,7 @@
   <a href="#-installation">Installation</a> •
   <a href="#-supported-providers">Supported Providers</a> •
   <a href="#-tutorials">Tutorials</a> •
+  <a href="examples/">Examples Catalog</a> •
   <a href="#-cli-tool">CLI Tool</a> •
   <a href="#-api-reference">API Reference</a> •
   <a href="README_AR.md">العربية</a>
@@ -107,6 +108,9 @@ Swarmmy includes built-in native providers for major LLM services, communicating
 ---
 
 ## 📚 Tutorials
+
+> 💡 **Looking for provider-specific guides & code?** Explore our dedicated **[Examples Catalog](examples/)** organized by provider:
+> [Google Gemini](examples/gemini/) • [OpenAI](examples/openai/) • [Anthropic Claude](examples/anthropic/) • [Groq](examples/groq/) • [DeepSeek](examples/deepseek/) • [Ollama Offline](examples/ollama/) • [Hugging Face Local GPU](examples/huggingface/) • [OpenRouter](examples/openrouter/) • [Mistral](examples/mistral/) • [Cohere](examples/cohere/) • [Azure OpenAI](examples/azure/) • [Custom Callables & Streaming](examples/custom_and_streaming/)
 
 ### Tutorial 1: Quickstart in 30 Seconds
 
