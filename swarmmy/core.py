@@ -235,7 +235,13 @@ class Swarm:
                                 raise ModelResponseError("Empty/nontext model response")
 
                             dur = time.monotonic() - t
-                            model_name = getattr(self.backend, "model", "")
+                            model_attr = getattr(self.backend, "model_name", None) or getattr(self.backend, "model", "")
+                            if isinstance(model_attr, str):
+                                model_name = model_attr
+                            elif hasattr(model_attr, "config") and hasattr(model_attr.config, "_name_or_path"):
+                                model_name = str(model_attr.config._name_or_path)
+                            else:
+                                model_name = getattr(self.backend, "model_id", "") or str(type(model_attr).__name__)
                             await usage_tracker.record_usage(
                                 prompt_text=prompt,
                                 completion_text=value,

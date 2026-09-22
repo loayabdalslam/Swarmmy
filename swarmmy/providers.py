@@ -531,6 +531,7 @@ class HuggingFace(BaseProvider):
 
         import threading
 
+        self.model_name = model
         self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=trust_remote_code)
         self.model = AutoModelForCausalLM.from_pretrained(
             model, device_map=device_map, trust_remote_code=trust_remote_code

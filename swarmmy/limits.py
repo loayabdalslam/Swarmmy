@@ -35,7 +35,12 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     # Groq / Open source hosted
     "llama-3.3-70b": (0.59, 0.79),
     "llama-3.1-8b": (0.05, 0.08),
-    "mixtral-8x7b": (0.24, 0.24),
+    # Local models (Ollama, local HuggingFace)
+    "ollama": (0.00, 0.00),
+    "local": (0.00, 0.00),
+    "qwen": (0.00, 0.00),
+    "smollm": (0.00, 0.00),
+    "hf": (0.00, 0.00),
 }
 
 
@@ -50,9 +55,14 @@ def estimate_tokens(text: str) -> int:
     return max(1, tokens)
 
 
-def lookup_model_pricing(model_name: str) -> tuple[float, float]:
+def lookup_model_pricing(model_name: Any) -> tuple[float, float]:
     """Find the best matching pricing entry for a model name."""
-    name_lower = (model_name or "").lower()
+    if not isinstance(model_name, str):
+        if hasattr(model_name, "config") and hasattr(model_name.config, "_name_or_path"):
+            model_name = str(model_name.config._name_or_path)
+        else:
+            model_name = str(model_name or "")
+    name_lower = model_name.lower()
     for pattern, pricing in MODEL_PRICING.items():
         if pattern in name_lower:
             return pricing
