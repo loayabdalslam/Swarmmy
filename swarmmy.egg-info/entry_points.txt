@@ -1,0 +1,3 @@
+[console_scripts]
+instruct-swarm = swarmmy.cli:main
+swarmmy = swarmmy.cli:main

@@ -1,0 +1,127 @@
+Metadata-Version: 2.4
+Name: swarmmy
+Version: 0.1.0
+Summary: Bounded peer-review swarm orchestration for instruction models
+Author: Swarmmy Team
+License: MIT
+Keywords: llm,swarm,multi-agent,peer-review,orchestration,ai,agents
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Provides-Extra: hf
+Requires-Dist: torch>=2.2; extra == "hf"
+Requires-Dist: transformers>=4.45; extra == "hf"
+Requires-Dist: accelerate>=0.34; extra == "hf"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+
+# Instruct Swarm 0.1
+
+فريمورك Python يضيف تنسيق سرب من الوكلاء فوق موديلات Instruct، بدون تدريب أو تغيير الأوزان.
+نسخة أولية قابلة للاستخدام والتوسعة، وليست إثباتًا لتحسن الدقة.
+
+## التثبيت
+
+```bash
+python -m pip install .
+```
+
+Python 3.10+. المسار عبر API لا يحتاج أي dependencies خارج مكتبة Python القياسية.
+
+## API محلي أو بعيد
+
+شغّل موديلك أولًا على خادم يقدم `/v1/chat/completions` ثم:
+
+```bash
+instruct-swarm "اقترح تصميمًا لنظام بحث وراجع نقاط ضعفه" --model YOUR_MODEL --base-url http://localhost:8000/v1 --agents 4 --rounds 1 --output result.json
+```
+
+لخادم يتطلب مفتاحًا: ضع المفتاح في متغير البيئة `SWARM_API_KEY`، ولا تكتبه في الكود.
+استخدم HTTPS للخوادم البعيدة. توافق API يعتمد على دعم messages/temperature/max_tokens
+والرد النصي في choices[0].message.content؛ بعض الخوادم تحتاج adapter مخصصًا.
+
+## الاستخدام من Python
+
+```python
+import asyncio
+from instruct_swarm import Swarm, Config, OpenAICompatible
+
+backend = OpenAICompatible(model="YOUR_MODEL", base_url="http://localhost:8000/v1")
+swarm = Swarm(backend, Config(agents=4, rounds=1, max_calls=40))
+result = asyncio.run(swarm.run("صمم خطة تنفيذ وراجع الافتراضات"))
+print(result.answer)
+print(result.calls, result.warnings)
+```
+
+داخل Jupyter استخدم `result = await swarm.run(...)` بدل asyncio.run.
+
+## موديل Hugging Face محلي
+
+```bash
+python -m pip install '.[hf]'
+instruct-swarm "راجع هذا التصميم" --backend hf --model PATH_OR_HF_MODEL_ID --concurrency 1
+```
+
+يُحمّل موديل causal language model واحدًا مشتركًا بين الوكلاء، ويستخدم chat template
+المرفق بالموديل. تشغيل الاستدلال محليًا متسلسل لحماية الذاكرة؛ التوازي الحقيقي يعتمد على
+خادم الاستدلال أو العتاد. قالب المحادثة الصحيح مهم:
+https://huggingface.co/docs/transformers/v4.55.4/chat_templating
+
+المحول المحلي يرفض تنفيذ remote code، وبالتالي بعض المعماريات المخصصة غير مدعومة.
+حد السياق الافتراضي 8192 token أو حد الموديل إن كان أقل. لا يتم اقتطاع السؤال بصمت.
+لو تخطيت الحد قلل `--peer-chars` و`--max-tokens` وعدد الوكلاء.
+
+## دورة العمل
+
+1. وكلاء بأدوار متنوعة ينتجون حلولًا مستقلة لنفس السؤال.
+2. كل وكيل يراجع الآخرين؛ لا يقيّم نفسه.
+3. كل وكيل يحسّن حله بناءً على المقترحات والانتقادات.
+4. تتكرر المراجعة والتحسين حسب rounds ثم تقييم نهائي وتجميع الإجابة.
+
+هذه محاكاة swarm على مستوى inference بتبادل المعرفة في لوحة مشتركة، وليست خوارزمية
+PSO/ACO أو تغييرًا في البنية العصبية. الأدوار prompts ثابتة، لكن الحلول يصنعها موديلك.
+التقييمات آراء موديلات وليست احتمالات صحة. لا يوجد early stop على أساس الاتفاق، لأن
+الاتفاق قد يكون على خطأ. تستخدم النتيجة التجميعية كل الحلول المتاحة، والتقييم لترتيبها؛
+عند فشل التجميع يرجع أعلى حل متاح مع warning.
+
+عدد الاستدعاءات الأقصى المخطط له: `N * (2 + 2R) + 1`.
+4 وكلاء وجولة واحدة = 17 استدعاء. max_calls حد صلب مع فحص الإعدادات قبل البدء.
+max_tokens حد لكل رد؛ لا يوجد حد مالي أو إجمالي input tokens. زيادة الوكلاء تزيد
+الكلفة، وحجم المراجعات ينمو تقريبًا تربيعيًا. peer_chars يحد نص كل اقتراح في تبادل المعرفة.
+لا توجد retries تلقائية حتى لا تتجاوز الميزانية أو تكرر طلبات مدفوعة.
+
+## Backend خاص لأي موديل آخر
+
+```python
+class MyBackend:
+    async def complete(self, messages, temperature=0.7, max_tokens=1024):
+        # استدعِ محرك الاستدلال وأعد نصًا غير فارغ.
+        return await your_async_inference(messages, temperature, max_tokens)
+```
+
+مرر الكائن إلى Swarm. مزود API السحابي يستقبل نص المهمة ومقترحات الوكلاء.
+السجل JSON يحتوي مخرجات الوكلاء التي قد تتضمن بيانات حساسة؛ احفظه حسب احتياجات مشروعك.
+لا تُنفذ أدوات أو أكواد مولّدة تلقائيًا؛ لا يوجد تصفح أو ذاكرة دائمة أو تعلم للأوزان.
+
+## الاختبار والحدود
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+الاختبارات تستخدم backend اصطناعيًا لاختبار orchestration والتوازي والأعطال.
+لم يتم اختبار استدلال موديل حقيقي أو قياس تحسن الجودة أو تشغيل HF/GPU في بيئة البناء.
+لإثبات الفائدة: قارن نفس الموديل single-call مقابل swarm على مجموعة محجوبة من مهامك،
+وسجل الدقة والوقت والتوكنز والتكلفة. أضف baseline متعدد العينات بنفس الميزانية للمقارنة العادلة.
+Swarm قد يكون أبطأ أو أسوأ بسبب انتقال الأخطاء بين الوكلاء؛ لا توجد ضمانات AGI أو نسبة تحسن.

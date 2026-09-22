@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "swarmmy"
+version = "0.1.0"
+description = "Bounded peer-review swarm orchestration for instruction models"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Swarmmy Team"}
+]
+keywords = ["llm", "swarm", "multi-agent", "peer-review", "orchestration", "ai", "agents"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+hf = ["torch>=2.2", "transformers>=4.45", "accelerate>=0.34"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+swarmmy = "swarmmy.cli:main"
+instruct-swarm = "swarmmy.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["swarmmy*", "instruct_swarm*"]
+
+[tool.setuptools.package-data]
+swarmmy = ["py.typed"]
